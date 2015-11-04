@@ -125,6 +125,7 @@ class AccountTransferTests extends FunSuite {
 
     while (bank.getProcessedTransactionsAsList.size != 1) {
       Thread.sleep(100)
+      System.out.println("Dritt")
     }
 
     assert(bank.getProcessedTransactionsAsList.last.status == TransactionStatus.FAILED)

@@ -43,20 +43,49 @@ class Transaction(val transactionsQueue: TransactionQueue,
 
   var status: TransactionStatus.Value = TransactionStatus.PENDING
 
+  var remaining = allowedAttemps
+
   override def run: Unit = {
-    
-    def doTransaction() = {
-      from withdraw amount
-      to deposit amount
+    if(amount < 0){
+      status = TransactionStatus.FAILED
+      processedTransactions.push(this)
     }
-    
-    if (from.uid < to.uid) from synchronized {
-      to synchronized {
-        doTransaction
+    else if (from.getBalanceAmount < amount) {
+      status = TransactionStatus.FAILED
+      processedTransactions.push(this)
+    }
+    else {
+      def doTransaction() = {
+        try {
+          from withdraw amount
+          to deposit amount
+          status = TransactionStatus.SUCCESS
+        } catch {
+          case nsfe: NoSufficientFundsException =>
+            status = TransactionStatus.FAILED
+            remaining = remaining - 1
+          case e: Exception =>
+            status = TransactionStatus.FAILED
+            remaining = remaining - 1
+        }
       }
-    } else to synchronized {
-      from synchronized {
-        doTransaction
+
+
+      if (from.uid < to.uid) from synchronized {
+        to synchronized {
+          doTransaction
+        }
+      } else to synchronized {
+        from synchronized {
+          doTransaction
+        }
+      }
+
+      if (remaining <= 0 && status == TransactionStatus.FAILED || status == TransactionStatus.SUCCESS) {
+        processedTransactions.push(this)
+      }
+      else {
+        transactionsQueue.push(this)
       }
     }
     
