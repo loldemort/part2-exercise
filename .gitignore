@@ -9,8 +9,6 @@ project/boot/
 .history
 .cache
 ### Scala template
-*.log
-
 # sbt specific
 .lib/
 dist/*
